@@ -1,0 +1,13 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/captures/
+.cxx/
+.kotlin/
+*.jks
+*.keystore
+release-key-base64.txt
