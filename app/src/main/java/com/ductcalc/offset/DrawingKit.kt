@@ -25,6 +25,7 @@ import java.util.Locale
 import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Shared look for the drawings, modeled on the drawing in offset_calc.xlsx:
@@ -66,8 +67,9 @@ internal fun frac(v: Double) = toSixteenths(v).removePrefix("≈ ")
 /** Decimal like the sheet's bracketed numbers, e.g. [29.6985]. */
 internal fun dec(v: Double) = "[" + String.format(Locale.US, "%.4f", v).trimEnd('0').trimEnd('.') + "]"
 
-private fun mainStyle(c: Color) = TextStyle(color = c, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-private fun subStyle(c: Color) = TextStyle(color = c, fontSize = 10.sp)
+private fun DrawScope.capped(size: Float) = (size * min(fontScale, 1.3f) / fontScale).sp
+private fun DrawScope.mainStyle(c: Color) = TextStyle(color = c, fontSize = capped(13f), ...)
+private fun DrawScope.subStyle(c: Color) = TextStyle(color = c, fontSize = capped(10f))
 
 internal fun DrawScope.labelSize(tm: TextMeasurer, main: String, sub: String?): Size {
     val l1 = tm.measure(main, mainStyle(Color.White))

@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,10 +45,21 @@ fun App() {
         topBar = {
             Column {
                 TopAppBar(title = { Text("Duct Offset Calculator") })
-                TabRow(selectedTabIndex = tab) {
+                // With a large phone text size, equal-width tabs would wrap ("Compoun / d"),
+                // so switch to tabs that fit their text and scroll sideways if needed.
+                val tabLabels: @Composable () -> Unit = {
                     tabs.forEachIndexed { i, t ->
-                        Tab(selected = tab == i, onClick = { tab = i }, text = { Text(t) })
+                        Tab(
+                            selected = tab == i,
+                            onClick = { tab = i },
+                            text = { Text(t, maxLines = 1, softWrap = false) }
+                        )
                     }
+                }
+                if (largeText()) {
+                    ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) { tabLabels() }
+                } else {
+                    TabRow(selectedTabIndex = tab) { tabLabels() }
                 }
             }
         }
@@ -84,14 +96,14 @@ fun OffsetScreen() {
     SectionTitle("Calculate Offset Cut Piece")
     Text("Fill out the highlighted numbers to match your requirements.", style = MaterialTheme.typography.bodyMedium)
 
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        NumberField("(A) Offset", a, { a = it }, Modifier.weight(1f))
-        NumberField(if (mixed) "(I) Elbow 1 angle °" else "(I) Angle °", i, { i = it }, Modifier.weight(1f))
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        NumberField("(B) ℄ rise multiplier", b, { b = it }, Modifier.weight(1f))
-        NumberField("(H) ø or cheek", h, { h = it }, Modifier.weight(1f))
-    }
+    FieldRow(
+        { m -> NumberField("(A) Offset", a, { a = it }, m) },
+        { m -> NumberField(if (mixed) "(I) Elbow 1 angle °" else "(I) Angle °", i, { i = it }, m) },
+    )
+    FieldRow(
+        { m -> NumberField("(B) ℄ rise multiplier", b, { b = it }, m) },
+        { m -> NumberField("(H) ø or cheek", h, { h = it }, m) },
+    )
 
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
@@ -101,14 +113,8 @@ fun OffsetScreen() {
         Switch(checked = mixed, onCheckedChange = { mixed = it })
     }
     if (mixed) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            NumberField("Elbow 2 angle °", i2, { i2 = it }, Modifier.weight(1f))
-            Text(
-                "Elbow 1 sets the travel angle of the cut piece.",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.weight(1f).align(Alignment.CenterVertically)
-            )
-        }
+        NumberField("Elbow 2 angle °", i2, { i2 = it }, Modifier.fillMaxWidth())
+        Text("Elbow 1 sets the travel angle of the cut piece.", style = MaterialTheme.typography.bodySmall)
     }
 
     val av = a.num(); val iv = i.num(); val bv = b.num(); val hv = h.num()
@@ -155,10 +161,10 @@ fun CompoundScreen() {
             "Use the result as your (A) Offset on the Offset tab.",
         style = MaterialTheme.typography.bodyMedium
     )
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        NumberField("A (rise)", a, { a = it }, Modifier.weight(1f))
-        NumberField("B (run)", b, { b = it }, Modifier.weight(1f))
-    }
+    FieldRow(
+        { m -> NumberField("A (rise)", a, { a = it }, m) },
+        { m -> NumberField("B (run)", b, { b = it }, m) },
+    )
     val av = a.num(); val bv = b.num()
     ResultCard {
         ResultRow("A²", av?.let { it * it }, fraction = false)
@@ -178,11 +184,11 @@ fun OwlScreen() {
 
     SectionTitle("O.W.L. Method — Square Mitered Offsets")
     Text("Offset × Width ÷ Length = Miter", style = MaterialTheme.typography.bodyMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        NumberField("Offset", o, { o = it }, Modifier.weight(1f))
-        NumberField("Width", w, { w = it }, Modifier.weight(1f))
-        NumberField("Length", l, { l = it }, Modifier.weight(1f))
-    }
+    FieldRow(
+        { m -> NumberField("Offset", o, { o = it }, m) },
+        { m -> NumberField("Width", w, { w = it }, m) },
+        { m -> NumberField("Length", l, { l = it }, m) },
+    )
     val ov = o.num(); val wv = w.num(); val lv = l.num()
     ResultCard {
         ResultRow("Miter", if (ov != null && wv != null && lv != null && lv != 0.0) OffsetMath.owlMiter(ov, wv, lv) else null, highlight = true)
@@ -197,11 +203,11 @@ fun ResizeScreen() {
 
     SectionTitle("Change Size — Same Square Inches")
     Text("(W1 × H1) ÷ W2 = H2", style = MaterialTheme.typography.bodyMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        NumberField("W1 width", w1, { w1 = it }, Modifier.weight(1f))
-        NumberField("H1 height", h1, { h1 = it }, Modifier.weight(1f))
-        NumberField("W2 width", w2, { w2 = it }, Modifier.weight(1f))
-    }
+    FieldRow(
+        { m -> NumberField("W1 width", w1, { w1 = it }, m) },
+        { m -> NumberField("H1 height", h1, { h1 = it }, m) },
+        { m -> NumberField("W2 width", w2, { w2 = it }, m) },
+    )
     val a = w1.num(); val b = h1.num(); val c = w2.num()
     ResultCard {
         ResultRow("Area (sq in)", if (a != null && b != null) a * b else null, fraction = false)
@@ -211,6 +217,24 @@ fun ResizeScreen() {
 }
 
 /* ---------- Building blocks ---------- */
+
+/** True when the phone's text size is set larger than normal (Settings → Display → Font size). */
+@Composable
+fun largeText(): Boolean = LocalDensity.current.fontScale > 1.1f
+
+/** Input boxes side by side normally; stacked full-width when the phone uses large text. */
+@Composable
+fun FieldRow(vararg fields: @Composable (Modifier) -> Unit) {
+    if (largeText()) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            fields.forEach { field -> field(Modifier.fillMaxWidth()) }
+        }
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            fields.forEach { field -> field(Modifier.weight(1f)) }
+        }
+    }
+}
 
 private fun String.num(): Double? = trim().replace(',', '.').toDoubleOrNull()
 
